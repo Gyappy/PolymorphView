@@ -26,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
         final ImageView mInlayer = new ImageView(MainActivity.this);
         mInlayer.setBackgroundResource(R.mipmap.upimage);
         final PolymorphView mPView = new PolymorphView(this);
-        mPView.setMeasureInfo(384, 512);
+        mPView.setMeasureInfo(768, 1024);
         mPView.setSurfaceBitmap(BitmapFactory.decodeResource(getResources(), R.mipmap.chonglang));
         mPView.setPaintStroke(60);
 //        mPView.setUsePercentCounter(false);
