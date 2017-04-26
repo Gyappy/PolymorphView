@@ -10,6 +10,7 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -34,9 +35,14 @@ public class ShadeView extends View {
     //path每次的开始坐标值
     private int mLastX;
     private int mLastY;
+    //手指按下的坐标
+    private int downX;
+    private int downY;
     //是否完成挂挂交互
     private boolean isComplete = false;
     private int basisMove;
+    private int basisWholeMove = 5000;
+    private boolean isInvokeCounterThread;
 
     //    private Bitmap mOutterBitmap;//图片遮罩
     private PorterDuffXfermode xfermode = new PorterDuffXfermode(PorterDuff.Mode.DST_OUT);
@@ -69,7 +75,7 @@ public class ShadeView extends View {
     }
 
     public ShadeView(Context context) {
-        this(context, null);
+        super(context);
     }
 
     public ShadeView(Context context, AttributeSet attrs) {
@@ -97,6 +103,7 @@ public class ShadeView extends View {
         }
         //设置画笔属性
         setupOutPaint();
+
     }
 
     /**
@@ -114,6 +121,7 @@ public class ShadeView extends View {
 
     /**
      * 设定尺寸
+     *
      * @param measuredWidth
      * @param measuredHeight
      */
@@ -224,6 +232,8 @@ public class ShadeView extends View {
                         mGestureListener.onGestureStart();
                     }
                 }
+                downX = x;
+                downY = y;
                 mLastX = x;
                 mLastY = y;
                 mPath.moveTo(mLastX, mLastY);
@@ -231,12 +241,19 @@ public class ShadeView extends View {
             case MotionEvent.ACTION_MOVE:
                 int dx = Math.abs(x - mLastX);
                 int dy = Math.abs(y - mLastY);
+                int wx = Math.abs(x - downX);
+                int wy = Math.abs(y - downY);
                 //滑动超过某个像素才会改变，为了避免很频繁的响应。
                 if (dx > basisMove || dy > basisMove) {
                     mPath.lineTo(x, y);
                 }
+                //一旦超过一定幅度 就允许这次交互开启线程
+                if (wx > basisWholeMove || wy > basisWholeMove) {
+                    isInvokeCounterThread = true;
+                }
                 mLastX = x;
                 mLastY = y;
+                Log.v("ooooooooooo", "-1 " + x + " " + y);
                 break;
             case MotionEvent.ACTION_UP:
                 if (mGestureListener != null) {
@@ -244,7 +261,10 @@ public class ShadeView extends View {
                 }
                 //如果不使用计算器,抬起手指就展示完整结果
                 if (isUsePercentCounter) {
-                    new Thread(mRunnable).start();
+                    if (isInvokeCounterThread) {
+                        isInvokeCounterThread = false;
+                        new Thread(mRunnable).start();
+                    }
                 } else {
                     isComplete = true;
                 }
@@ -263,6 +283,7 @@ public class ShadeView extends View {
         @Override
         public void run() {
 
+            Log.v("ooooooooooo", "1 " + System.currentTimeMillis());
             int w = measuredWidth;
             int h = measuredHeight;
 
@@ -272,12 +293,12 @@ public class ShadeView extends View {
             Bitmap bitmap = mBitmap;
 
             mPixels = new int[w * h];
-
+            Log.v("ooooooooooo", "2 " + System.currentTimeMillis());
             /**
              * 拿到所有的像素信息
              */
             bitmap.getPixels(mPixels, 0, w, 0, 0, w, h);
-
+            Log.v("ooooooooooo", "3 " + System.currentTimeMillis());
             /**
              * 遍历统计擦除的区域
              */
@@ -286,14 +307,19 @@ public class ShadeView extends View {
                     int index = i + j * w;
                     if (mPixels[index] == 0) {
                         wipeArea++;
+                        if (wipeArea > 0 && totalArea > 0 && (int) (wipeArea * 100 / totalArea) > percentThreshold) {
+                            isComplete = true;
+                            postInvalidate();
+                            return;
+                        }
                     }
                 }
             }
-
+            Log.v("ooooooooooo", "4 " + System.currentTimeMillis());
             /**
              * 根据所占百分比，进行一些操作
              */
-            if (wipeArea > 0 && totalArea > 0) {
+            if (wipeArea > 0 && totalArea > 0 && !isComplete) {
                 int percent = (int) (wipeArea * 100 / totalArea);
 
                 if (percent > percentThreshold) {
@@ -301,6 +327,9 @@ public class ShadeView extends View {
                     postInvalidate();
                 }
             }
+
+
+            Log.v("ooooooooooo", "5 " + System.currentTimeMillis() + " " + wipeArea + " " + totalArea);
         }
 
     };

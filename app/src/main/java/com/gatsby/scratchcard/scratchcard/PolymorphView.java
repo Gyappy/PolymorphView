@@ -39,7 +39,6 @@ public class PolymorphView extends FrameLayout {
      */
     public void setInlayer(View v) {
         addView(v, 0);
-        invalidate();
     }
 
     public void setMeasureInfo(int measuredWidth, int measuredHeight) {
