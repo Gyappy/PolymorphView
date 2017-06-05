@@ -275,6 +275,25 @@ public class ShadeView extends View {
     }
 
     /**
+     * 处理滑动冲突
+     * @param event
+     * @return
+     */
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent event) {
+
+        switch (event.getAction()) {
+
+            case MotionEvent.ACTION_DOWN:
+                getParent().requestDisallowInterceptTouchEvent(true);
+                break;
+
+        }
+
+        return super.dispatchTouchEvent(event);
+    }
+
+    /**
      * 统计擦除区域任务
      */
     private Runnable mRunnable = new Runnable() {
